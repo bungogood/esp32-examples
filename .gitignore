@@ -1,0 +1,11 @@
+# Ignore build and IDE files
+.vscode/
+.pio/
+
+# Environment variables file
+.env
+include/secrets.h
+
+# OS files
+.DS_Store
+Thumbs.db
