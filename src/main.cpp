@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-#include "StatusLED.h"
 #include "Website.h"
 #include "secrets.h"
 
@@ -9,26 +8,24 @@
 constexpr uint8_t LED_PIN = 8;
 
 StatusLED statusLED(LED_PIN);
+RFIDReader rfidReader(1, 0);
 Timestamp timestamp;
-CatflapManager catflapManager(statusLED, timestamp);
+CatflapManager catflapManager(statusLED, rfidReader, timestamp);
 Website website("catflap", catflapManager);
 
 void setup() {
+    // Initialize StatusLED after Serial
+    statusLED.begin();
+    statusLED.setColor(Color::RED);
+
     // Initialize Serial first with higher baud rate
     Serial.begin(115200);
     delay(1000);
 
-    // Initialize StatusLED after Serial
-    statusLED.begin();
-
-    // Connect to WiFi
     connectToWiFi(WIFI_SSID, WIFI_PASSWORD, &statusLED);
-
-    // Initialize Website
     website.begin();
-
-    // Configure NTP
     timestamp.configureNTP();
+    rfidReader.begin();
 }
 
 void loop() {
