@@ -7,8 +7,10 @@
 
 // Create status LED instance
 constexpr uint8_t LED_PIN = 8;
+
 StatusLED statusLED(LED_PIN);
-CatflapManager catflapManager(statusLED);
+Timestamp timestamp;
+CatflapManager catflapManager(statusLED, timestamp);
 Website website("catflap", catflapManager);
 
 void setup() {
@@ -24,6 +26,9 @@ void setup() {
 
     // Initialize Website
     website.begin();
+
+    // Configure NTP
+    timestamp.configureNTP();
 }
 
 void loop() {
