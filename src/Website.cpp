@@ -1,5 +1,8 @@
 #include "Website.h"
 
+#include <ArduinoJson.h>
+#include <ESPmDNS.h>
+#include <LittleFS.h>
 #include <WiFi.h>
 
 // WiFi connection function
@@ -42,4 +45,72 @@ bool connectToWiFi(const char* ssid, const char* password,
         }
         return false;
     }
+}
+
+Website::Website(const char* hostname, uint16_t port)
+    : hostname(hostname), server(port), api(&server) {}
+
+void Website::begin() {
+    if (!LittleFS.begin()) {
+        Serial.println("LittleFS mount failed");
+        return;
+    }
+    Serial.println("LittleFS mounted successfully");
+    if (!MDNS.begin(hostname)) {
+        Serial.println("Error setting up MDNS responder!");
+        return;
+    }
+    Serial.print("MDNS started: ");
+    Serial.print(hostname);
+    Serial.println(".local");
+    setupRoutes();
+    server.begin();
+    Serial.println("Web server started");
+}
+
+void Website::setupRoutes() {
+    api.setupRoutes();
+    server.onNotFound([this]() {
+        if (server.uri().startsWith("/api/")) {
+            api.apiHandler(std::bind(&APIHandler::routeNotFound, &api));
+        } else {
+            handleStaticFile(server.uri());
+        }
+    });
+}
+
+void Website::handleStaticFile(String path) {
+    if (path.endsWith("/")) path += "index.html";
+
+    String contentType = "text/plain";
+    if (path.endsWith(".html"))
+        contentType = "text/html";
+    else if (path.endsWith(".css"))
+        contentType = "text/css";
+    else if (path.endsWith(".js"))
+        contentType = "application/javascript";
+    else if (path.endsWith(".png"))
+        contentType = "image/png";
+    else if (path.endsWith(".jpg"))
+        contentType = "image/jpeg";
+    else if (path.endsWith(".gif"))
+        contentType = "image/gif";
+    else if (path.endsWith(".ico"))
+        contentType = "image/x-icon";
+
+    if (!LittleFS.exists(path)) {
+        Serial.printf("[Website] File not found: %s\n", path.c_str());
+        server.send(404, "text/plain", "File not found");
+        return;
+    }
+
+    File file = LittleFS.open(path, "r");
+    if (!file) {
+        Serial.printf("[Website] Error opening file: %s\n", path.c_str());
+        server.send(500, "text/plain", "Error opening file");
+        return;
+    }
+
+    server.streamFile(file, contentType);
+    file.close();
 }
