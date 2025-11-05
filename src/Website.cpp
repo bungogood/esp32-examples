@@ -18,7 +18,7 @@ bool connectToWiFi(const char* ssid, const char* password,
     WiFi.begin(ssid, password);
 
     int attempts = 0;
-    while (WiFi.status() != WL_CONNECTED && attempts < 30) {
+    while (WiFi.status() != WL_CONNECTED && attempts < 50) {
         delay(100);
         Serial.print(".");
         attempts++;

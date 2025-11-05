@@ -1,13 +1,20 @@
 #include "StatusLED.h"
 
 // Constructor
-StatusLED::StatusLED(uint8_t pin, uint8_t numLeds)
-    : rgbLed(numLeds, pin, NEO_GRB + NEO_KHZ800), currentBrightness(100) {}
+StatusLED::StatusLED(uint8_t pin, uint8_t numLeds, uint8_t defaultBrightness)
+    : rgbLed(numLeds, pin, NEO_GRB + NEO_KHZ800),
+      currentBrightness(defaultBrightness),
+      defaultBrightness(defaultBrightness) {}
 
 // Initialize the statusLED
 void StatusLED::begin() {
     rgbLed.begin();
     rgbLed.show();
+}
+
+// Set default brightness
+void StatusLED::setBrightness(uint8_t brightness) {
+    defaultBrightness = brightness;
 }
 
 // Set color using RGB values (0-255)
@@ -20,6 +27,11 @@ void StatusLED::setColor(uint8_t red, uint8_t green, uint8_t blue,
     uint8_t b = (uint8_t)(((uint16_t)blue * scale) / 255);
     rgbLed.setPixelColor(0, rgbLed.Color(g, r, b));
     rgbLed.show();
+}
+
+// Set color using RGB values (0-255) with default brightness
+void StatusLED::setColor(uint8_t red, uint8_t green, uint8_t blue) {
+    setColor(red, green, blue, defaultBrightness);
 }
 
 // Set color using enum
@@ -69,3 +81,6 @@ void StatusLED::setColor(Color color, uint8_t brightness) {
             break;
     }
 }
+
+// Set color using enum with default brightness
+void StatusLED::setColor(Color color) { setColor(color, defaultBrightness); }

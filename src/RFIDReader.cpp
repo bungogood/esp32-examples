@@ -42,33 +42,32 @@ bool RFIDReader::extractTag() {
 
 // Read and process RFID tag data
 RFIDTag* RFIDReader::readTag() {
-    if (!rfidSerial.available()) {
-        return nullptr;
-    }
+    // Process all available data
+    while (rfidSerial.available()) {
+        int byteRead = rfidSerial.read();
+        if (byteRead == -1) break;
 
-    int byteRead = rfidSerial.read();
-    if (byteRead == -1) return nullptr;
+        // Start frame (0xAA)
+        if (byteRead == 0xAA && buffer_index == 0) {
+            buffer[buffer_index++] = byteRead;
+            continue;
+        }
 
-    // Start frame (0xAA)
-    if (byteRead == 0xAA && buffer_index == 0) {
-        buffer[buffer_index++] = byteRead;
-        return nullptr;
-    }
+        // Continue filling buffer
+        if (buffer_index > 0 && buffer_index < BUFFER_SIZE) {
+            buffer[buffer_index++] = byteRead;
+        }
 
-    // Continue filling buffer
-    if (buffer_index > 0 && buffer_index < BUFFER_SIZE) {
-        buffer[buffer_index++] = byteRead;
-    }
+        // End frame (0xBB) - complete frame received
+        if (byteRead == 0xBB && buffer_index == BUFFER_SIZE && extractTag()) {
+            buffer_index = 0;
+            return &detectedTag;
+        }
 
-    // End frame (0xBB) - complete frame received
-    if (byteRead == 0xBB && buffer_index == BUFFER_SIZE && extractTag()) {
-        buffer_index = 0;
-        return &detectedTag;
-    }
-
-    // Reset if out of sync
-    if (buffer_index >= BUFFER_SIZE) {
-        buffer_index = 0;
+        // Reset if out of sync
+        if (buffer_index >= BUFFER_SIZE) {
+            buffer_index = 0;
+        }
     }
 
     return nullptr;

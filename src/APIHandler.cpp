@@ -8,11 +8,18 @@ int healthCheck(JsonDocument& response, CatflapManager& catflapManager) {
     return 200;
 }
 
-int dummyList(JsonDocument& response, CatflapManager& catflapManager) {
-    auto data = catflapManager.getData();
-    JsonArray array = response["data"].to<JsonArray>();
-    for (const auto& item : data) {
-        array.add(item);
+int catlog(JsonDocument& response, CatflapManager& catflapManager) {
+    JsonArray log = response["log"].to<JsonArray>();
+    for (const auto& item : catflapManager.catlog) {
+        JsonObject obj = log.createNestedObject();
+        obj["tagId"] = item.tagId;
+        obj["timestamp"] = item.timestamp;
+    }
+    JsonArray cats = response["cats"].to<JsonArray>();
+    for (const auto& [tagId, info] : catflapManager.catlogMap) {
+        JsonObject obj = cats.createNestedObject();
+        obj["tagId"] = tagId;
+        obj["name"] = info.name;
     }
     return 200;
 }
@@ -24,7 +31,7 @@ int notFound(JsonDocument& response, CatflapManager& catflapManager) {
 
 void APIHandler::setupRoutes() {
     apiRoute("/api/health", HTTP_GET, &healthCheck);
-    apiRoute("/api/dummy-list", HTTP_GET, &dummyList);
+    apiRoute("/api/catlog", HTTP_GET, &catlog);
 }
 
 // THIS IS CODE TO SETUP AND LOG API REQUESTS AND RESPONSES

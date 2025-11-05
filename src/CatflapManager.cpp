@@ -2,23 +2,26 @@
 
 CatflapManager::CatflapManager(StatusLED& led, RFIDReader& rfid, Timestamp& ts)
     : statusLED(led), rfidReader(rfid), timestamp(ts) {
-    // Initialize dummy data
-    dummyData = {1, 2, 3, 4, 5};
+    // catlog.push_back({10789766, 1625079600});
+    addCatInfo({100000023268, "Meg"});
+    addCatInfo({100000024525, "Coco"});
+    addCatInfo({10789766, "Test"});
 }
 
-std::vector<int> CatflapManager::getData() { return dummyData; }
+void CatflapManager::addCatInfo(CatInfo info) { catlogMap[info.tagId] = info; }
 
 void CatflapManager::scan() {
     // Scan for RFID tags
     RFIDTag* tag = rfidReader.readTag();
     if (tag) {
         // Process the detected tag
-        statusLED.setColor(Color::BLUE, 100);
-        Serial.printf("RFID Tag Detected - Country: %u, Tag ID: %010llX\n",
-                      tag->country, tag->tagId);
+        statusLED.setColor(Color::MAGENTA);
+        Serial.printf("RFID Tag Detected - Tag ID: %010llX\n", tag->tagId);
+        CatEvent event = {tag->tagId, timestamp.now()};
+        catlog.push_back(event);
+
         // Update timestamp
-        delay(100);  // Simulate processing delay
-        statusLED.setColor(Color::GREEN, 100);
-        timestamp.update();
+        delay(200);  // Simulate processing delay
+        statusLED.setColor(Color::GREEN);
     }
 }
