@@ -47,8 +47,9 @@ bool connectToWiFi(const char* ssid, const char* password,
     }
 }
 
-Website::Website(const char* hostname, uint16_t port)
-    : hostname(hostname), server(port), api(&server) {}
+Website::Website(const char* hostname, CatflapManager& catflapManager,
+                 uint16_t port)
+    : hostname(hostname), server(port), api(server, catflapManager) {}
 
 void Website::begin() {
     if (!LittleFS.begin()) {
@@ -72,7 +73,7 @@ void Website::setupRoutes() {
     api.setupRoutes();
     server.onNotFound([this]() {
         if (server.uri().startsWith("/api/")) {
-            api.apiHandler(std::bind(&APIHandler::routeNotFound, &api));
+            api.routeNotFound();
         } else {
             handleStaticFile(server.uri());
         }

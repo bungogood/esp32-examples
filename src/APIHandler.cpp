@@ -1,31 +1,44 @@
 #include "APIHandler.h"
 
-APIHandler::APIHandler(WebServer* server) : server(server) {}
+APIHandler::APIHandler(WebServer& server, CatflapManager& catflapManager)
+    : server(server), catflapManager(catflapManager) {}
 
-void APIHandler::setupRoutes() {
-    apiRoute("/api/health", HTTP_GET,
-             std::bind(&APIHandler::healthCheck, this));
-}
-
-int APIHandler::healthCheck() {
+int healthCheck(JsonDocument& response, CatflapManager& catflapManager) {
     response["status"] = "ok";
     return 200;
 }
 
-int APIHandler::routeNotFound() {
+int dummyList(JsonDocument& response, CatflapManager& catflapManager) {
+    auto data = catflapManager.getData();
+    JsonArray array = response["data"].to<JsonArray>();
+    for (const auto& item : data) {
+        array.add(item);
+    }
+    return 200;
+}
+
+int notFound(JsonDocument& response, CatflapManager& catflapManager) {
     response["error"] = "Endpoint not found";
-    response["endpoint"] = server->uri();
     return 404;
+}
+
+void APIHandler::setupRoutes() {
+    apiRoute("/api/health", HTTP_GET, &healthCheck);
+    apiRoute("/api/dummy-list", HTTP_GET, &dummyList);
 }
 
 // THIS IS CODE TO SETUP AND LOG API REQUESTS AND RESPONSES
 
-void APIHandler::apiRoute(const Uri& uri, HTTPMethod method,
-                          std::function<int(void)> handler) {
-    server->on(uri, method, std::bind(&APIHandler::apiHandler, this, handler));
+void APIHandler::routeNotFound() { apiHandler(notFound); }
+
+void APIHandler::apiRoute(
+    const Uri& uri, HTTPMethod method,
+    std::function<int(JsonDocument&, CatflapManager&)> handler) {
+    server.on(uri, method, std::bind(&APIHandler::apiHandler, this, handler));
 }
 
-void APIHandler::apiHandler(std::function<int(void)> handler) {
+void APIHandler::apiHandler(
+    std::function<int(JsonDocument&, CatflapManager&)> handler) {
     unsigned long startTime = millis();
 
     clearResponse();
@@ -34,7 +47,7 @@ void APIHandler::apiHandler(std::function<int(void)> handler) {
     int statusCode;
 
     try {
-        statusCode = handler();
+        statusCode = handler(response, catflapManager);
     } catch (...) {
         Serial.println("[API] Exception in handler");
         statusCode = 500;
@@ -47,16 +60,16 @@ void APIHandler::apiHandler(std::function<int(void)> handler) {
 }
 
 void APIHandler::sendResponse(int statusCode, const JsonDocument& body) {
-    server->sendHeader("Access-Control-Allow-Origin", "*");
+    server.sendHeader("Access-Control-Allow-Origin", "*");
     serializeJson(body, jsonString);
-    server->send(statusCode, "application/json", jsonString);
+    server.send(statusCode, "application/json", jsonString);
 }
 
 void APIHandler::logRequest() {
-    String body = server->arg("plain");
-    Serial.printf(
-        "[API] %s %s - Client: %s", methodToString(server->method()).c_str(),
-        server->uri().c_str(), server->client().remoteIP().toString().c_str());
+    String body = server.arg("plain");
+    Serial.printf("[API] %s %s - Client: %s",
+                  methodToString(server.method()).c_str(), server.uri().c_str(),
+                  server.client().remoteIP().toString().c_str());
 
     if (body.length() > 0) {
         Serial.printf(" Body: %s", body.c_str());
@@ -65,7 +78,7 @@ void APIHandler::logRequest() {
 }
 
 void APIHandler::logResponse(int statusCode, unsigned long duration) {
-    Serial.printf("[API] %s -> %d (%lu ms) Body: %s\n", server->uri().c_str(),
+    Serial.printf("[API] %s -> %d (%lu ms) Body: %s\n", server.uri().c_str(),
                   statusCode, duration, jsonString);
 }
 

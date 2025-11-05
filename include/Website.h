@@ -3,6 +3,7 @@
 #include <WebServer.h>
 
 #include "APIHandler.h"
+#include "CatflapManager.h"
 #include "StatusLED.h"
 
 bool connectToWiFi(const char* ssid, const char* password,
@@ -18,7 +19,8 @@ class Website {
     void handleStaticFile(String path);
 
    public:
-    Website(const char* hostname, uint16_t port = 80);
+    Website(const char* hostname, CatflapManager& catflapManager,
+            uint16_t port = 80);
 
     // Add website-related methods here in the future
     void begin();
