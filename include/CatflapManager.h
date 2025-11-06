@@ -29,6 +29,8 @@ class CatflapManager {
 
     CatflapManager(StatusLED& led, RFIDReader& rfid, Timestamp& ts);
 
+    void begin();
+
     void addCatInfo(CatInfo info);
     void scan();
 };

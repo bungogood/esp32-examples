@@ -2,11 +2,12 @@
 
 CatflapManager::CatflapManager(StatusLED& led, RFIDReader& rfid, Timestamp& ts)
     : statusLED(led), rfidReader(rfid), timestamp(ts) {
-    // catlog.push_back({10789766, 1625079600});
     addCatInfo({100000023268, "Meg"});
     addCatInfo({100000024525, "Coco"});
     addCatInfo({10789766, "Test"});
 }
+
+void CatflapManager::begin() { Serial.println("CatflapManager initialized"); }
 
 void CatflapManager::addCatInfo(CatInfo info) { catlogMap[info.tagId] = info; }
 

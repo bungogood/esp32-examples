@@ -19,49 +19,59 @@ async function apiCall(endpoint, method = "GET", data = null) {
     }
 }
 
-async function getStatus() {
-    const result = await apiCall("status", "GET");
-    if (result.ledState !== undefined) {
-        document.getElementById("status").innerHTML = `
-            <strong>Catflap:</strong> ${result.ledState ? "OPEN" : "CLOSED"}<br>
-            <strong>Time:</strong> ${result.currentTime}<br>
-            <strong>Last Event:</strong> ${
-                result.lastEvent
-                    ? `${result.lastEvent.eventType} by ${result.lastEvent.user} at ${result.lastEvent.eventTime}`
-                    : "None"
-            }
-        `;
+async function getCatlog() {
+    const result = await apiCall("catlog", "GET");
+
+    if (result.log && result.cats) {
+        displayCatlog(result.log, result.cats);
     } else {
-        document.getElementById("status").innerHTML = "Failed to get status";
+        document.getElementById("catlog").innerHTML = "Failed to load catlog";
     }
 }
 
-async function turnLedOn() {
-    const data = { state: true };
-    const result = await apiCall("led", "POST", data);
-    if (result.success) {
-        console.log("Catflap opened");
-        getStatus();
+function displayCatlog(log, cats) {
+    // Create a map of tagId to cat name for easy lookup
+    const catMap = {};
+    cats.forEach((cat) => {
+        catMap[cat.tagId] = cat.name;
+    });
+
+    // Sort log entries by timestamp (most recent first)
+    const sortedLog = log.sort((a, b) => b.timestamp - a.timestamp);
+
+    let html = "";
+
+    if (sortedLog.length === 0) {
+        html = "<p>No activity logged yet.</p>";
     } else {
-        alert("Failed to open catflap: " + result.message);
+        html = '<table class="log-table">';
+        html +=
+            "<thead><tr><th>Time</th><th>Cat</th><th>Tag ID</th></tr></thead>";
+        html += "<tbody>";
+
+        sortedLog.forEach((entry) => {
+            const catName = catMap[entry.tagId] || "Unknown Cat";
+            const formattedTime = new Date(
+                entry.timestamp * 1000
+            ).toLocaleString();
+
+            html += `<tr>
+                <td>${formattedTime}</td>
+                <td>${catName}</td>
+                <td>${entry.tagId}</td>
+            </tr>`;
+        });
+
+        html += "</tbody></table>";
     }
+
+    document.getElementById("catlog").innerHTML = html;
 }
 
-async function turnLedOff() {
-    const data = { state: false };
-    const result = await apiCall("led", "POST", data);
-    if (result.success) {
-        console.log("Catflap closed");
-        getStatus();
-    } else {
-        alert("Failed to close catflap: " + result.message);
-    }
-}
-
-// Load initial status when page loads
+// Load initial catlog when page loads
 window.onload = function () {
-    getStatus();
+    getCatlog();
 };
 
-// Auto-refresh status every 10 seconds
-setInterval(getStatus, 10000);
+// Auto-refresh catlog every 30 seconds
+setInterval(getCatlog, 30000);

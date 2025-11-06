@@ -27,6 +27,7 @@ void setup() {
     website.begin();
     timestamp.configureNTP();
     rfidReader.begin();
+    catflapManager.begin();
 }
 
 void loop() {
